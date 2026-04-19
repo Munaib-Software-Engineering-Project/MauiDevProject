@@ -1,0 +1,42 @@
+name: Build & Test Workflow
+
+on: [pull_request]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        services:
+          postgres:
+            image: postgres:16
+            env:
+              POSTGRES_USER: test_user
+              POSTGRES_PASSWORD: test_password
+              POSTGRES_DB: testdb
+            options: >-
+              --health-cmd pg_isready
+              --health-interval 10s
+              --health-timeout 5s
+              --health-retries 5
+            ports:
+              - 5432:5432
+
+        steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Setup .NET
+          uses: actions/setup-dotnet@v4
+          with:
+            dotnet-version: 9.0
+
+        - name: Restore workloads
+          run: dotnet workload restore ./HelloMaui/HelloMaui.csproj
+
+        - name: Restore dependencies
+          run: dotnet restore ./HelloMaui/HelloMaui.csproj
+
+        - name: Build project
+          env:
+            ConnectionStrings__TestConnection: ${{ secrets.TestConnection_CONNECTION_STRING }}
+          run: dotnet build ./HelloMaui/HelloMaui.csproj --framework net9.0-android
