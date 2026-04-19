@@ -1,0 +1,36 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+#      platform: linux/amd64 
+    volumes:
+      - .:/workspace:cached
+    network_mode: service:db
+    environment:
+      - ADB_SERVER_SOCKET=tcp:172.17.0.1:5037
+    command: sleep infinity
+    depends_on:
+      db:
+        condition: service_healthy
+
+
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+      POSTGRES_DB: devdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_user -d devdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
